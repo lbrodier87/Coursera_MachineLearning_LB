@@ -10,7 +10,7 @@ One thing that people regularly do is quantify how much of a particular activity
 
 # Data pre-processing
 We load the following libraries: 
-```{r, results='hide'}
+```{r, results='hide', warning=F}
 library(caret)
 library(rpart.plot)
 library(rpart)
@@ -81,24 +81,24 @@ ggplot(data=v, aes(y=1:dim(v)[1], x=Overall)) +
   xlab("importance (varImp)")+ ylab("variable") + theme_bw()
 ```
   
-The decision tree (rpart) gives us an **accuracy** of **`r accurary.dt`**, and an **out of sample error** of **`r ose.dt`**.  
+The decision tree (rpart) gives us an accuracy of **`r accurary.dt`**, and an out of sample error of `r ose.dt`.  
 
 ## Random Forest
 We then use the random forest algorithm: 
 ```{r, cache=TRUE}
 modFit.rf <- train(classe~., data=train, method="rf")
 pred.rf <- predict(modFit.rf, test)
-table(pred.rf, test$classe)
 cm.rf <- confusionMatrix(pred.rf, test$classe) 
 accurary.rf <- paste0(round(cm.rf$overall[1]*100, 2), "%")
 ose.rf <- paste0(round((1-cm.rf$overall[1])*100, 2), "%")
 cm.rf
 ```
-
+We get an accuracy of `r accurary.rf` and an out of sample error of `r ose.rf`. 
+  
 We also plot the important variables: 
 ```{r}
 library(ggplot2)
-v <- varImp(modFit.rf)
+v <- varImp(modFit.rf)$importance
 v$name <- rownames(v)
 v <- v[order(v$Overall, decreasing = T),]
 v <- v[10:1,]
@@ -107,5 +107,27 @@ ggplot(data=v, aes(y=1:dim(v)[1], x=Overall)) +
   scale_y_continuous(breaks = 1:length(v$name), labels = v$name) + 
   xlab("importance (varImp)")+ ylab("variable") + theme_bw()
 ```
-#Conclusion: 
-The random forest model is better with an accuracy of `r accurary.rf` compared to the decision tree with an accuracy of `r accuracy.dt`. We keep the random forest model. 
+
+# Conclusion: 
+The random forest model is better with an accuracy of `r accurary.rf` compared to the decision tree with an accuracy of `r accurary.dt`. We keep the random forest model. 
+
+# Course Project Prediction Quiz
+We apply the same pre-processing to he testing dataset than for the training dataset. 
+```{r}
+#remove NA columns in training:
+testing <-testing.raw[,colSums(is.na(testing.raw)) == 0]
+
+#remove columns unrelated to the analysis:
+testing <- testing[,-c(1,2,3,4,5,6,7)] 
+
+#look at near zero values: 
+nzv <- nearZeroVar(testing, saveMetrics = TRUE)
+testing <- testing[,!nzv$nzv]
+dim(testing.raw); dim(testing)
+```
+
+We apply the prediction to the testing dataset: 
+```{r}
+pred <- predict(modFit.rf, testing)
+pred
+```
